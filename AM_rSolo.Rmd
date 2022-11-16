@@ -1,19 +1,86 @@
----
-title: "R Notebook"
-output: html_notebook
----
-
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
 ```{r}
-plot(cars)
+library(tidyverse)
+```
+ 1. Read in `districts.csv` into a tibble named `districts`. How many rows and columns does it contain?
+```{r}
+districts <- read_csv('data/districts.csv')
+```
+2. Notice that the first row corresponds to the whole State of Tennessee. Remove this row and save the result back to `districts'
+```{r}
+districts <-districts[-c(1), ]
+
+```
+```{r}
+districts
+```
+3. How many districts have a proficiency rate of at least 80% for both alg_1 and eng_1?
+```{r}
+districts %>% 
+  select(system, system_name, alg_1, eng_1) %>% 
+  filter(alg_1 >= 80.0 & eng_1 >= 80.0)
+```
+```{r}
+districts %>% 
+  filter(alg_1 >= 80.0 & eng_1 >= 80.0) %>%
+  count()
+```
+. How many districts have a proviciency rate less than 50% for either alg_1 or eng_1?
+```{r}
+districts %>% 
+  select(system, system_name,alg_1, eng_1) %>% 
+  filter(alg_1 <= 50.0 | eng_1 <= 50.0) 
+```
+```{r}
+districts %>% 
+  select(system, system_name,alg_1, eng_1) %>% 
+  filter(alg_1 <= 50.0 | eng_1 <= 50.0) %>%
+  count()
+```
+5. Which district has the lowest graduation rate?
+```{r}
+districts %>% 
+  summarise(min(grad, na.rm = TRUE))
+```
+```{r}
+districts %>% 
+  select(system_name, grad, region)%>%
+  slice_min(grad)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+6. Within the Mid Cumberland region, which district has the highest ACT composite?
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+```{r}
+districts %>%
+  select(system_name, act_composite, region)%>%
+  filter (region == "Mid Cumberland") %>% 
+  slice_max(act_composite)
+  
+```
+7. Create a histogram showing the distribution of graduation rates. What can you say about this distribution?
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+districts %>%
+drop_na(grad) %>%
+ggplot(aes(x = grad)) +
+geom_histogram(binwidth = 5, color="black", fill="blue") +
+scale_x_continuous(name = "Graduation rates in %")+
+scale_y_continuous(name = "Count") +
+ggtitle("Distribution of Graduation rates")
+```
+8. Create a scatter plot to compare alg_1 proficiency rates to alg_2 rates. What do you notice? Facet this plot by region. Does anything stand out when you facet the plots?
+
+```{r}
+districts %>%
+ggplot(aes(x = alg_1, y=alg_2)) +
+geom_point() +
+facet_wrap("region")
+```
+9. Create a bar chart showing the total enrollment by region. Which region has the highest total enrollment? Which has the smallest?
+```{r}
+districts %>%
+group_by(region) %>%
+ggplot(aes(x = alg_1, y=alg_2)) +
+geom_point() +
+facet_wrap("region")
+```
 
