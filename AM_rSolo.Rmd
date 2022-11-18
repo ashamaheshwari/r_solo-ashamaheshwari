@@ -72,15 +72,69 @@ ggtitle("Distribution of Graduation rates")
 ```{r}
 districts %>%
 ggplot(aes(x = alg_1, y=alg_2)) +
-geom_point() +
+geom_point(na.rm = TRUE) +
 facet_wrap("region")
 ```
 9. Create a bar chart showing the total enrollment by region. Which region has the highest total enrollment? Which has the smallest?
 ```{r}
 districts %>%
-group_by(region) %>%
-ggplot(aes(x = alg_1, y=alg_2)) +
-geom_point() +
-facet_wrap("region")
+  select (enrollment, region) %>% 
+  group_by(region) %>%
+  drop_na(enrollment) %>%
+  summarize(total_enrollement = sum(enrollment)) %>%
+  ggplot(aes(x = region, y = total_enrollement)) +
+  geom_col()
+ 
 ```
+10. When creating this bar chart you may have noticed that some districts have missing enrollment values. For how many districts is this the case?
+
+```{r}
+districts %>%
+  filter(enrollment == 'NA')
+```
+11. What is the mean graduation rate across all districts? What might be wrong with using just the regular mean to assess average graduation rates?
+```{r}
+districts %>%
+  drop_na(grad) %>%
+  summarize(Average_Graduation_Rate = mean(grad))
+```
+12. Redo the previous question but use a weighted average (`weighted.mean`) graduation across all districts, weighing by enrollment. How much does this change your answer? Can you explain using the data the reason for the big change from using the mean?
+```{r}
+districts %>%
+  summarize(Average_Graduation_Rate = weighted.mean(grad, enrollment))
+
+```
+
+13. Create a boxplot showing graduation rates per region. Does anything stand out?
+```{r}
+districts %>%
+  select (grad, region) %>% 
+  group_by(region) %>%
+  ggplot(aes(x = region, y = grad)) +
+  geom_boxplot(na.rm = TRUE)
+
+```
+14. Find the weighted average of graduation rates by region using enrollment as weights. Compare the results you get for the weighted average to what you see from the boxplots.
+
+
+15. For many districts, values for `alg_2` are lower than for `alg_1`. Create a histogram showing the distribution of differences (`alg_1` - `alg_2`). Which school had the largest drop from `alg_1` to `alg_2`? For what percentage of schools is it true that `alg_2` is larger than `alg_1`? Is there a similar drop off for `eng_2` and `eng_3`?
+
+```{r}
+districts %>% 
+  mutate(system_name, alg_1, alg_2, Difference = alg_1 - alg_2) %>%
+  ggplot(aes(x = Difference)) +
+  geom_histogram(binwidth = 5, color="black", fill="blue")
+```
+```{r}
+districts %>% 
+  mutate(system_name, alg_1, alg_2, Difference = alg_1 - alg_2) %>%
+   slice_max(Difference)
+```
+```{r}
+districts %>% 
+    filter(alg_2 > alg_1) %>% 
+    count()
+   
+```
+
 
