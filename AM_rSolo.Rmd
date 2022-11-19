@@ -5,20 +5,49 @@ library(tidyverse)
 ```{r}
 districts <- read_csv('data/districts.csv')
 ```
+```{r}
+print(nrow(districts))
+print(ncol(districts))
+```
+```{r}
+str(districts)
+```
+```{r}
+dim(districts)
+```
+
+
 2. Notice that the first row corresponds to the whole State of Tennessee. Remove this row and save the result back to `districts'
+
+```{r}
+districts <- districts %>%
+    filter(system_name != 'State of Tennessee')
+```
+
 ```{r}
 districts <-districts[-c(1), ]
 
 ```
 ```{r}
 districts
-```
+`
+
+``
 3. How many districts have a proficiency rate of at least 80% for both alg_1 and eng_1?
 ```{r}
 districts %>% 
   select(system, system_name, alg_1, eng_1) %>% 
   filter(alg_1 >= 80.0 & eng_1 >= 80.0)
 ```
+```{r}
+#filter(alg_1 >= 80, eng_1 >=80)
+```
+```{r}
+#sum(districts$alg_1 >= 80 & districts$eng_1 >= 80, na.rm = T)
+
+#sum(districts$alg_1 >= 80 & districts$eng_1 >= 80, na.rm = T)
+```
+
 ```{r}
 districts %>% 
   filter(alg_1 >= 80.0 & eng_1 >= 80.0) %>%
@@ -43,8 +72,27 @@ districts %>%
 ```
 ```{r}
 districts %>% 
-  select(system_name, grad, region)%>%
+  #select(system_name, grad, region)%>%
   slice_min(grad)
+```
+```{r}
+districts %>% 
+  slice_min(grad)
+```
+```{r}
+LowestGraduation <- districts %>% 
+  filter(grad == min(grad, na.rm=TRUE)) %>% 
+   transmute(system_name, grad)
+LowestGraduation
+```
+```{r}
+districts%>%
+  filter(grad == min(grad, na.rm=TRUE))
+```
+```{r}
+districts %>%
+  arrange(grad) %>% 
+  head(1)
 ```
 
 6. Within the Mid Cumberland region, which district has the highest ACT composite?
@@ -56,6 +104,14 @@ districts %>%
   slice_max(act_composite)
   
 ```
+```{r}
+MidCumACT <- districts %>% 
+  filter(region == "Mid Cumberland") %>% 
+  filter(act_composite == max(act_composite, na.rm=TRUE)) %>% 
+  transmute(system_name, act_composite)
+MidCumACT
+```
+
 7. Create a histogram showing the distribution of graduation rates. What can you say about this distribution?
 
 ```{r}
@@ -63,19 +119,53 @@ districts %>%
 drop_na(grad) %>%
 ggplot(aes(x = grad)) +
 geom_histogram(binwidth = 5, color="black", fill="blue") +
-scale_x_continuous(name = "Graduation rates in %")+
+scale_x_continuous(name = "Graduation rates in %", breaks=c(20, 40, 60, 70, 80, 90, 100))+
 scale_y_continuous(name = "Count") +
 ggtitle("Distribution of Graduation rates")
 ```
+```{r}
+districts %>%
+drop_na(grad) %>%
+ggplot(aes(x = grad)) +
+geom_histogram(binwidth = 5, color="black", fill="blue") +
+labs(x= "Graduation rates in %", y = 'Count')+
+ggtitle("Distribution of Graduation rates")
+```
+```{r}
+districts_grad <- districts %>%
+  select(grad)
+
+ggplot(districts, aes(grad,  fill = region)) +
+  geom_histogram(bins = 20, alpha = 20, na.rm =TRUE) +
+  facet_wrap(~ region)
+```
+```{r}
+
+```
+
 8. Create a scatter plot to compare alg_1 proficiency rates to alg_2 rates. What do you notice? Facet this plot by region. Does anything stand out when you facet the plots?
 
 ```{r}
 districts %>%
-ggplot(aes(x = alg_1, y=alg_2)) +
+ggplot(aes(x = alg_1, y=alg_2, color = region)) +
 geom_point(na.rm = TRUE) +
 facet_wrap("region")
 ```
+```{r}
+
+districts %>% 
+  ggplot(aes(x=alg_1, y=alg_2)) +
+  facet_wrap(vars(region)) +
+  geom_point(na.rm=TRUE) +
+  xlim(0,100) +
+  ylim(0,100)
+```
+
 9. Create a bar chart showing the total enrollment by region. Which region has the highest total enrollment? Which has the smallest?
+```{r}
+library(scales)
+```
+
 ```{r}
 districts %>%
   select (enrollment, region) %>% 
@@ -86,35 +176,119 @@ districts %>%
   geom_col()
  
 ```
+```{r}
+districts %>% 
+  ggplot(aes(enrollment, region, fill = region)) +
+  geom_bar(stat='identity', na.rm = TRUE) + 
+  geom_col(position = 'dodge') +
+  labs(y = 'Total Enrollment', x = 'Region',   
+  title = 'Total Enrollment By Region') +
+  scale_x_continuous(labels = comma)
+```
+```{r}
+ggplot(districts, aes(x=region,y=enrollment, fill=region))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+
+  scale_y_continuous(name = 'Enrollment in 100k', labels = unit_format(scale = 1e-5, unit = ''))
+```
+
 10. When creating this bar chart you may have noticed that some districts have missing enrollment values. For how many districts is this the case?
 
+
 ```{r}
-districts %>%
-  filter(enrollment == 'NA')
+districts %>% 
+  filter(is.na(enrollment)) %>% 
+  transmute(system_name)
 ```
+
+```{r}
+sum(is.na(districts$enrollment))
+```
+
+
+```{r}
+nrow(districts %>%
+  group_by(region) %>%
+  summarize(na_enrollment=sum(is.na(enrollment))) 
+
+```
+
 11. What is the mean graduation rate across all districts? What might be wrong with using just the regular mean to assess average graduation rates?
+
 ```{r}
 districts %>%
   drop_na(grad) %>%
   summarize(Average_Graduation_Rate = mean(grad))
 ```
+
+```{r}
+summary(districts$grad)
+```
+
+```{r}
+summarise(districts, meanGrad = mean(grad, , na.rm = TRUE))
+```
+
+
 12. Redo the previous question but use a weighted average (`weighted.mean`) graduation across all districts, weighing by enrollment. How much does this change your answer? Can you explain using the data the reason for the big change from using the mean?
+
 ```{r}
 districts %>%
-  summarize(Average_Graduation_Rate = weighted.mean(grad, enrollment))
+  drop_na(enrollment) %>% 
+  summarize(Average_Graduation_Rate = weighted.mean(grad, enrollment, na.rm = TRUE))
 
 ```
+
+
+```{r}
+weighted.mean(districts$grad, dplyr::coalesce(districts$enrollment,0), na.rm=TRUE)
+```
+
 
 13. Create a boxplot showing graduation rates per region. Does anything stand out?
 ```{r}
 districts %>%
-  select (grad, region) %>% 
   group_by(region) %>%
   ggplot(aes(x = region, y = grad)) +
   geom_boxplot(na.rm = TRUE)
+```
+
+```{r}
+districts %>%
+arrange(grad, region) %>%
+ggplot(aes(grad, region, fill = region)) +
+geom_boxplot(na.rm = TRUE) +
+xlim(0,100)
+```
+
+```{r}
+districts %>% 
+  ggplot(aes(x=grad, y=region)) +
+  geom_boxplot(na.rm=TRUE) +
+  scale_x_continuous(breaks=seq(0,100,10))
+```
+
+
+
+
+14. Find the weighted average of graduation rates by region using enrollment as weights. Compare the results you get for the weighted average to what you see from the boxplots.
+
+```{r}
+districts %>%
+  group_by(region) %>% 
+  drop_na(enrollment) %>% 
+  summarize(Weighted_Average = weighted.mean(grad, enrollment, na.rm = TRUE))
 
 ```
-14. Find the weighted average of graduation rates by region using enrollment as weights. Compare the results you get for the weighted average to what you see from the boxplots.
+
+```{r}
+districts %>% 
+  drop_na(grad, enrollment) %>% 
+  group_by(region) %>% 
+  summarize(w_mean = weighted.mean(grad, enrollment),
+            sd = sd(grad))
+```
+
 
 
 15. For many districts, values for `alg_2` are lower than for `alg_1`. Create a histogram showing the distribution of differences (`alg_1` - `alg_2`). Which school had the largest drop from `alg_1` to `alg_2`? For what percentage of schools is it true that `alg_2` is larger than `alg_1`? Is there a similar drop off for `eng_2` and `eng_3`?
@@ -123,7 +297,7 @@ districts %>%
 districts %>% 
   mutate(system_name, alg_1, alg_2, Difference = alg_1 - alg_2) %>%
   ggplot(aes(x = Difference)) +
-  geom_histogram(binwidth = 5, color="black", fill="blue")
+  geom_histogram(binwidth = 5, color="black", fill="blue", na.rm = TRUE)
 ```
 ```{r}
 districts %>% 
@@ -136,5 +310,85 @@ districts %>%
     count()
    
 ```
+```{r}
+districts %>% 
+  mutate(system_name, eng_2, eng_3, difference = eng_2 - eng_3) %>%
+  ggplot(aes(x = difference)) +
+  geom_histogram(binwidth = 5, color="black", fill="blue", na.rm = TRUE)
+```
 
+```{r}
+districts %>% 
+  mutate (system_name, eng_2, eng_3, difference = eng_2 - eng_3) %>%
+   slice_max(difference)
+```
+```{r}
+districts %>% 
+    filter(eng_3 > eng_2) %>% 
+    count()
+```
+
+16. You may have noticed that a lot of rows are missing values. Which district has the largest number of missing values? What do you notice about schools that have a lot of missing values?
+```{r}
+library(dplyr)
+count_na_func <- function(x) sum(is.na(x)) 
+
+districts %>%
+  mutate(count_na = apply(., 1, count_na_func))
+```
+ 
+ 
+17. Find the correlation between graduation rate and all other variables. Create a horizontal bar chart showing these correlations. Make sure that your plot is ordered by correlation values. What do you notice from these correlations?
+```{r}
+districts_noNA <- na.omit(districts) %>%
+select(where(is.numeric))
+data_cor <- cor(districts_noNA[ , colnames(districts_noNA) != "grad"],  districts_noNA$grad)
+data_cor
+```
+
+ 
+18. Create a scatterplot for `grad` vs. `suspended`. Does what you see make sense given your answer from the previous part?
+
+```{r}
+districts %>%
+ggplot(aes(x = grad, y=suspended)) +
+geom_point(na.rm = TRUE) 
+```
+
+19. Create a linear regression model using `lm` with target variable `grad` and predictor variable `suspended`. What R^2 value does this model have? What is the interpretation of this number?
+```{r}
+simple_regression_model <- lm(grad ~ suspended,
+                              data =districts)
+summary(simple_regression_model)
+```
+
+20. Add the regression line to your scatterplot using `geom_smooth` with `method='lm'`. How do you feel about the regression line after seeing it plotted on the scatterplot?
+
+```{r}
+districts %>%
+ggplot(aes(x = grad, y=suspended)) +
+geom_point(na.rm = TRUE) + 
+geom_smooth(method="lm", col="black")
+```
+
+21. Read in the school-level testing data for 2014, available [here](https://www.tn.gov/content/dam/tn/education/data/data_2014_school_base.xlsx). You might find the readxl library useful for this task. If you use this library, be sure to look at the `na` argument for the `read_excel` function.
+
+```{r}
+library(readxl)
+```
+
+```{r}
+School_2014 <- read_excel('data/data_2014_school_base.xlsx', na = c("*", "**"))
+```
+
+22. How many schools have at least 20 percent of students below bsc for Algebra I? Which districts do these schools belong to?
+```{r}
+School_2014 %>% 
+  filter(subject == 'Algebra I' &  pct_below_bsc <= 20) %>%
+  count()
+```
+```{r}
+School_2014 %>% 
+  filter(subject == 'Algebra I' &  pct_below_bsc <= 20) 
+```
 
